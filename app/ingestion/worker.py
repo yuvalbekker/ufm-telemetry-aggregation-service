@@ -2,7 +2,7 @@ import time
 import boto3
 import app.db.utils as db_utils
 from app.core.config import settings
-from handler import process_message
+from app.ingestion.handler import process_message
 
 # SQS Client
 sqs = boto3.client(

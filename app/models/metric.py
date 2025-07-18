@@ -1,4 +1,4 @@
-from sqlalchemy import Column, VARCHAR,TIMESTAMP , Float, Integer
+from sqlalchemy import Column, VARCHAR, Float, Integer, TIMESTAMP, func
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -10,4 +10,4 @@ class Metric(Base):
     latency = Column(Float)
     packet_errors = Column(Integer)
     collection_time = Column(TIMESTAMP)
-    timestamp = Column(TIMESTAMP)
+    timestamp = Column(TIMESTAMP, nullable=False, server_default=func.now())
