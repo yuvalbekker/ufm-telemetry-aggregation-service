@@ -1,4 +1,15 @@
 services:
+  counters:
+    build: ../
+    container_name: telemetry-counters-api
+    env_file:
+      - .env
+    environment:
+      - MODE=COUNTERS
+    ports:
+      - "9001:9001"
+    networks:
+      - default
   localstack:
     image: localstack/localstack:3
     container_name: localstack
@@ -35,6 +46,7 @@ services:
     depends_on:
       - db
       - localstack
+      - counters
     env_file:
       - .env
     environment:
@@ -51,6 +63,7 @@ services:
     depends_on:
       - db
       - localstack
+      - counters
     env_file:
       - .env
     environment:
