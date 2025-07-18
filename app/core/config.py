@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "UFM Telemetry Aggregation Service"
-    API_V1_STR: str = "/api/v1"
+    API_V1_STR: str = "/telemetry"
 
     # Health api
     SERVICE_NAME: str = "ufm-telemetry-aggregation-service"
