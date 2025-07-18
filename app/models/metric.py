@@ -9,5 +9,5 @@ class Metric(Base):
     bandwidth_usage = Column(Float)
     latency = Column(Float)
     packet_errors = Column(Integer)
-    collectionTime = Column(TIMESTAMP)
+    collection_time = Column(TIMESTAMP)
     timestamp = Column(TIMESTAMP)

@@ -7,7 +7,7 @@ class SwitchMetric(BaseModel):
     bandwidth_usage: float = Field()
     latency: float = Field()
     packet_errors: int = Field()
-    collectionTime: datetime = Field()
+    collection_time: datetime = Field()
     timestamp: Optional[datetime] = Field(default=None)
 
 class SwitchMetrics(BaseModel):

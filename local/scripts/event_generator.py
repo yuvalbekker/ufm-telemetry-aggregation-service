@@ -24,7 +24,7 @@ def generate_metric() -> SwitchMetric:
         bandwidth_usage=round(random.uniform(10, 1000), 2),
         latency=round(random.uniform(0.1, 10.0), 3),
         packet_errors=random.randint(0, 100),
-        collectionTime=datetime.now(timezone.utc)
+        collection_time=datetime.now(timezone.utc)
     )
 
 def main():

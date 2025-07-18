@@ -3,6 +3,6 @@ CREATE TABLE IF NOT EXISTS metric (
     bandwidth_usage FLOAT,
     latency FLOAT,
     packet_errors INTEGER,
-    collectionTime TIMESTAMP,
+    collection_time TIMESTAMP,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
