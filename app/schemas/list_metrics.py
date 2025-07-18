@@ -1,7 +1,14 @@
+from typing import List
 from pydantic import BaseModel
+from datetime import datetime
 
-# Properties to return to client
-class ListMetrics(BaseModel):
-    service: str
-    status: str
-    version: str
+class MetricValueResponse(BaseModel):
+    switch_id: str
+    value: float
+    timestamp: datetime
+
+class ListMetricsResponse(BaseModel):
+    items: List[MetricValueResponse]
+    total: int
+    limit: int
+    offset: int
