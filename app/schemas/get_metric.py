@@ -1,7 +1,8 @@
 from pydantic import BaseModel
+from datetime import datetime
 
-# Properties to return to client
-class GetMetric(BaseModel):
-    service: str
-    status: str
-    version: str
+class GetMetricResponse(BaseModel):
+    switch_id: str
+    metric_name: str
+    value: float
+    timestamp: datetime
