@@ -5,13 +5,10 @@ import app.db.utils as db_utils
 
 def process_message(message_body, SessionLocal):
     try:
-        # Step 1: Parse the SNS notification envelope
         sns_envelope = json.loads(message_body)
-        # Step 2: Extract and parse the actual metrics list from the "Message" field
         metrics = json.loads(sns_envelope["Message"])
         db_metrics = []
         for metric_dict in metrics:
-            # Validate/parse using Pydantic, then save as SQLAlchemy
             metric = SwitchMetric(**metric_dict)
             db_metric = Metric(
                 switch_id=metric.switch_id,
