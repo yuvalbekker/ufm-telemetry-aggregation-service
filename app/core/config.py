@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     HEALTHY_STATUS: str = "OK"
     SERVICE_VERSION: str = "1.0.0"
 
+    #StatsD
+    GRAPHITE_HOST: str = "graphite"
+
     # Configuration
     SQS_QUEUE_URL: str = os.environ.get("SQS_QUEUE_URL", "http://localstack:4566/000000000000/ufm-telemetry-aggregation-sqs")
     AWS_REGION: str = os.environ.get("AWS_REGION", "us-east-1")

@@ -25,6 +25,19 @@ services:
       - ./scripts/localstack-init.sh:/etc/localstack/init/ready.d/localstack-init.sh
       - /var/run/docker.sock:/var/run/docker.sock
 
+  graphite:
+    image: graphiteapp/graphite-statsd
+    container_name: graphite
+    ports:
+      - "8000:80" # Graphite UI http://localhost:8000
+      - "2003:2003"
+      - "8125:8125/udp"
+    environment:
+      - GRAPHITE_TIME_ZONE=UTC
+    restart: unless-stopped
+    networks:
+      - default
+
   db:
     image: postgres:14-alpine
     container_name: telemetry-aggregation-db
@@ -47,6 +60,7 @@ services:
       - db
       - localstack
       - counters
+      - graphite
     env_file:
       - .env
     environment:
@@ -64,6 +78,7 @@ services:
       - db
       - localstack
       - counters
+      - graphite
     env_file:
       - .env
     environment:
