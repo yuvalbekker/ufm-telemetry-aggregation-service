@@ -5,6 +5,7 @@ pydantic==2.11.7
 pydantic-settings==2.10.1
 boto3==1.39.8
 requests==2.32.4
+statsd==4.0.1
 
 # DB
 alembic==1.16.4
