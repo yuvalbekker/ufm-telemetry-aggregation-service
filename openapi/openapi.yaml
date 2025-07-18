@@ -1,0 +1,8 @@
+openapi: 3.0.1
+
+info:
+  title: UFM Telemetry Aggregation Service
+  version: 1.0.0
+
+
+paths:
