@@ -127,24 +127,31 @@ The UFM Telemetry Aggregation Service is designed as a robust, scalable, and hig
 ### 1. Telemetry Generation
 
 **Source & Collection:**
-Telemetry data originates from a dedicated REST API service running in the `telemetry-counters-api` container. This API exposes real-time switch metrics through a `/counters` endpoint at `http://localhost:9001/counters`, delivering comprehensive performance data in efficient CSV format.
+Telemetry data originates from a dedicated REST API service running in the `telemetry-counters-api` container. This API exposes real-time switch metrics through a `/counters` endpoint at `http://localhost:9001/counters`, delivering the data in CSV format.
 
-**Intelligent Event Generation:**
-The `telemetry-event-generator` container operates as an intelligent periodic client, fetching fresh metrics every 10 seconds. This component transforms raw CSV data into structured telemetry objects and employs a sophisticated batching strategy—publishing metrics in optimized batches of 10 messages to an AWS SNS topic (emulated via LocalStack).
-
-**Key Advantages:**
-- **High Throughput:** Batched publishing maximizes message throughput while minimizing API overhead
-- **Reliability:** Consistent 10-second intervals ensure no data gaps
-- **Scalability:** Architecture supports monitoring hundreds of switches without performance degradation
-- **Cloud-Native:** SNS integration provides enterprise-grade message delivery guarantees
+**Event Generation:**
+The `telemetry-event-generator` container operates as a periodicic client, fetching fresh metrics from the `/counters` endpoint. This component transforms raw CSV data into structured telemetry objects and publishing the metrics in  batches of 10 messages every 10 seconds to an AWS SNS topic (emulated via LocalStack).
 
 ### 2. Data Handling
 
 **Decoupled Message Architecture:**
-The system implements a sophisticated message-driven architecture that completely decouples metric ingestion from storage operations. SNS topics seamlessly connect to SQS queues, creating a durable, fault-tolerant buffer that can handle traffic spikes and temporary service outages.
+The system implements a message-driven architecture that completely decouples metric ingestion from storage operations. SNS topics connect to SQS queues, creating a durable, fault-tolerant buffer that can handle traffic spikes and temporary service outages.
 
-**Intelligent Processing Pipeline:**
+**Processing Pipeline:**
 The `telemetry-aggregation-worker` container serves as the system's data processing engine, continuously consuming messages from the SQS queue. Each worker processes metric batches, performs data validation and transformation, then persists structured data to the PostgreSQL metrics table.
+
+**Optimized Database Schema:**
+The PostgreSQL metrics table is designed for high-performance queries and comprehensive monitoring capabilities. The schema includes an index on the `switch_id` column, enabling fast retrieval of metrics for specific switches ids by the `/GetMetric` endpoint.
+
+The table employs a dual-timestamp approach:
+- **Collection Time:** Records when the metric was originally calculated by the counters API
+- **Insertion Timestamp:** Captures when the metric was persisted to the database
+
+This design enables system health monitoring. The difference between collection time and insertion timestamp serves as a real-time indicator of processing latency. Large gaps can signal bottlenecks in the ingestion pipeline, network issues, or resource constraints. This latency differential can be leveraged to:
+- Create automated alerts for processing delays
+- Generate system health metrics and dashboards  
+- Trigger auto-scaling events when latency thresholds are exceeded
+- Provide operational insights for capacity planning
 
 **Key Advantages:**
 - **Fault Tolerance:** SQS message persistence ensures zero data loss during system maintenance or failures
@@ -155,8 +162,9 @@ The `telemetry-aggregation-worker` container serves as the system's data process
 
 ### 3. REST Server Integration
 
-**High-Performance API Layer:**
-The `telemetry-aggregation-api` container provides a powerful, RESTful interface for accessing processed telemetry data. This FastAPI-based service executes optimized queries directly against the PostgreSQL database, delivering real-time insights through well-documented endpoints.
+**API Layer:**
+The `telemetry-aggregation-api` container provides a RESTful interface for accessing processed telemetry data. This FastAPI-based service executes queries directly against the PostgreSQL database and delivering real-time
+insights.
 
 **Enterprise-Ready Features:**
 - **Real-Time Access:** Direct database queries ensure immediate access to the latest processed metrics
@@ -166,38 +174,10 @@ The `telemetry-aggregation-api` container provides a powerful, RESTful interface
 
 **Key Advantages:**
 - **Low Latency:** Direct database access minimizes response times for analytical queries
-- **Data Consistency:** All served data reflects successfully processed and validated metrics
 - **Developer Experience:** OpenAPI specification enables automatic client generation and testing
 - **Monitoring Ready:** Built-in health checks and metrics endpoints support operational monitoring
 - **Scalable Architecture:** Stateless design allows horizontal scaling of API instances
 
-### Orchestration & Deployment
-
 **Container-Native Design:**
 All system components are orchestrated using Docker Compose, providing:
 
-- **Consistent Environments:** Identical deployment across development, staging, and production
-- **Simplified Operations:** Single-command deployment with automatic dependency management
-- **Service Discovery:** Built-in networking enables seamless inter-service communication
-- **Resource Management:** Configurable resource limits and health monitoring
-- **Development Velocity:** Hot-reload capabilities and integrated debugging support
-
-This architecture delivers enterprise-grade reliability while maintaining the flexibility needed for rapid development and deployment cycles.
-
-## Architecture
-
-The service consists of:
-
-- **API Service:** FastAPI application handling HTTP requests
-- **Database:** PostgreSQL for storing telemetry data
-- **Worker:** Background worker for data processing (optional)
-
-## Environment Variables
-
-Create a `.env` file in the `local` directory with the following variables:
-
-```env
-POSTGRES_USER=your_db_user
-POSTGRES_PASSWORD=your_db_password
-POSTGRES_DB=telemetry_db
-```
