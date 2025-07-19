@@ -113,6 +113,49 @@ curl -X GET "http://localhost:8080/telemetry/ListMetrics/cpu_utilization?limit=5
 }
 ```
 
+### Performance
+
+For running the load test:
+```
+pip install locust
+locust -f performance/locust_test.py --host=http://localhost:8080
+```
+Open: http://localhost:8089
+
+**API performance test results**
+
+All of the locust reports are saved in `preformance` directory.
+
+**Scenario 1:**
+
+- 100 Users, 50 RPS
+
+- Response Time (95th percentile): 30–35 ms
+
+- Failures: 0
+
+**Summary**:
+
+The system performed very well under moderate load. Response times were consistently fast and there were no failures, indicating the application handled this traffic smoothly.
+
+**Scenario 2:**
+
+- 250 Users, 123 RPS
+
+- Response Time (95th percentile): 80–150 ms
+
+- Observed Peaks: Up to 420 ms
+
+- Failures: Began to occur
+
+- CPU Usage: 80–100% on both API and DB containers
+
+**Summary:**
+
+As the load increased, the system started to show signs of strain. Response times became more volatile, with occasional high-latency spikes. Failures began to appear, and both the API and database containers reached very high CPU usage, indicating the system was nearing or exceeding its capacity limits at this level of traffic.
+
+
+
 ### Interactive API Documentation
 
 Once the service is running, you can access the interactive API documentation:
