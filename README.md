@@ -120,6 +120,70 @@ Once the service is running, you can access the interactive API documentation:
 - **Swagger UI:** http://localhost:8080/docs
 - **ReDoc:** http://localhost:8080/redoc
 
+## System Overview
+
+The UFM Telemetry Aggregation Service is designed as a robust, scalable, and highly available system for collecting, processing, and serving network switch telemetry data. The architecture follows modern microservices principles with clear separation of concerns across three main operational layers.
+
+### 1. Telemetry Generation
+
+**Source & Collection:**
+Telemetry data originates from a dedicated REST API service running in the `telemetry-counters-api` container. This API exposes real-time switch metrics through a `/counters` endpoint at `http://localhost:9001/counters`, delivering comprehensive performance data in efficient CSV format.
+
+**Intelligent Event Generation:**
+The `telemetry-event-generator` container operates as an intelligent periodic client, fetching fresh metrics every 10 seconds. This component transforms raw CSV data into structured telemetry objects and employs a sophisticated batching strategy—publishing metrics in optimized batches of 10 messages to an AWS SNS topic (emulated via LocalStack).
+
+**Key Advantages:**
+- **High Throughput:** Batched publishing maximizes message throughput while minimizing API overhead
+- **Reliability:** Consistent 10-second intervals ensure no data gaps
+- **Scalability:** Architecture supports monitoring hundreds of switches without performance degradation
+- **Cloud-Native:** SNS integration provides enterprise-grade message delivery guarantees
+
+### 2. Data Handling
+
+**Decoupled Message Architecture:**
+The system implements a sophisticated message-driven architecture that completely decouples metric ingestion from storage operations. SNS topics seamlessly connect to SQS queues, creating a durable, fault-tolerant buffer that can handle traffic spikes and temporary service outages.
+
+**Intelligent Processing Pipeline:**
+The `telemetry-aggregation-worker` container serves as the system's data processing engine, continuously consuming messages from the SQS queue. Each worker processes metric batches, performs data validation and transformation, then persists structured data to the PostgreSQL metrics table.
+
+**Key Advantages:**
+- **Fault Tolerance:** SQS message persistence ensures zero data loss during system maintenance or failures
+- **Elastic Scalability:** Worker containers can be horizontally scaled based on queue depth, automatically adapting to load
+- **Performance Optimization:** Batch processing minimizes database connections and transaction overhead
+- **Operational Resilience:** Message replay capability enables recovery from processing errors
+- **Load Distribution:** Multiple workers can process messages concurrently for maximum throughput
+
+### 3. REST Server Integration
+
+**High-Performance API Layer:**
+The `telemetry-aggregation-api` container provides a powerful, RESTful interface for accessing processed telemetry data. This FastAPI-based service executes optimized queries directly against the PostgreSQL database, delivering real-time insights through well-documented endpoints.
+
+**Enterprise-Ready Features:**
+- **Real-Time Access:** Direct database queries ensure immediate access to the latest processed metrics
+- **Comprehensive API:** Full CRUD operations with advanced filtering, pagination, and search capabilities  
+- **Interactive Documentation:** Built-in Swagger UI and ReDoc for seamless API exploration and testing
+- **Type Safety:** Pydantic models ensure data consistency and automatic API documentation
+
+**Key Advantages:**
+- **Low Latency:** Direct database access minimizes response times for analytical queries
+- **Data Consistency:** All served data reflects successfully processed and validated metrics
+- **Developer Experience:** OpenAPI specification enables automatic client generation and testing
+- **Monitoring Ready:** Built-in health checks and metrics endpoints support operational monitoring
+- **Scalable Architecture:** Stateless design allows horizontal scaling of API instances
+
+### Orchestration & Deployment
+
+**Container-Native Design:**
+All system components are orchestrated using Docker Compose, providing:
+
+- **Consistent Environments:** Identical deployment across development, staging, and production
+- **Simplified Operations:** Single-command deployment with automatic dependency management
+- **Service Discovery:** Built-in networking enables seamless inter-service communication
+- **Resource Management:** Configurable resource limits and health monitoring
+- **Development Velocity:** Hot-reload capabilities and integrated debugging support
+
+This architecture delivers enterprise-grade reliability while maintaining the flexibility needed for rapid development and deployment cycles.
+
 ## Architecture
 
 The service consists of:
