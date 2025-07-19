@@ -120,6 +120,12 @@ Once the service is running, you can access the interactive API documentation:
 - **Swagger UI:** http://localhost:8080/docs
 - **ReDoc:** http://localhost:8080/redoc
 
+### Graphite web UI
+
+Once the graphite container is running, you can access the Graphite web UI:
+
+- **Graphite UI:** http://localhost:8000
+
 ## System Architecture
 
 ![System Architecture](docs/architecture.png)
@@ -170,6 +176,9 @@ This design enables system health monitoring. The difference between collection 
 The `telemetry-aggregation-api` container provides a RESTful interface for accessing processed telemetry data. This FastAPI-based service executes queries directly against the PostgreSQL database and delivering real-time
 insights.
 
+**Metrics Collection and Monitoring (Graphite Integration):**
+To enable observability and performance monitoring, the system includes a dedicated graphite container running the Graphite and StatsD stack. The telemetry-aggregation-api container is instrumented to send operational metrics—such as API call counts, response latencies, and error rates—to the StatsD endpoint exposed by Graphite. Metrics are collected in real time as the API handles requests, allowing for detailed monitoring and analysis.
+
 **Enterprise-Ready Features:**
 - **Real-Time Access:** Direct database queries ensure immediate access to the latest processed metrics
 - **Comprehensive API:** Full CRUD operations with advanced filtering, pagination, and search capabilities  
@@ -184,6 +193,8 @@ insights.
 
 **Container-Native Design:**
 All system components are orchestrated using Docker Compose.
+The Dockerfile configures the container to launch via an entrypoint bash script, which examines the MODE environment variable at startup and executes the appropriate service (API, worker, event generator, or counters server) based on its value.
+
 
 ## Limitations and improvement suggestions
 1. **Single Worker Instance Bottleneck**
