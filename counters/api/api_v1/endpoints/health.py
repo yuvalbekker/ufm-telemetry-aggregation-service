@@ -11,9 +11,6 @@ router = APIRouter()
 
 @router.get("", response_model=Health, responses=HEALTH_ERROR_RESPONSES)
 def health() -> Any:
-    """
-    health.
-    """
     return {
         "service": settings.SERVICE_NAME,
         "status": settings.HEALTHY_STATUS,

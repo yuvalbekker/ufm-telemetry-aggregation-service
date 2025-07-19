@@ -2,11 +2,16 @@ import os
 import json
 import csv
 import requests
+import logging
 from typing import List
 from datetime import datetime
 import boto3
 from app.schemas.metric import SwitchMetric
 import time
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN', 'arn:aws:sns:us-east-1:000000000000:ufm-telemetry-aggregation-sns')
 AWS_REGION = os.environ.get('AWS_REGION', 'us-east-1')
@@ -21,40 +26,55 @@ sns = boto3.client(
 )
 
 def fetch_counters_csv() -> List[SwitchMetric]:
-    response = requests.get(COUNTERS_API_URL)
-    response.raise_for_status()
+    try:
+        logger.info(f"Requesting telemetry from counters API: {COUNTERS_API_URL}")
+        response = requests.get(COUNTERS_API_URL)
+        response.raise_for_status()
+    except Exception as e:
+        logger.error(f"Failed to fetch data from counters API: {e}")
+        raise
+
     decoded = response.content.decode('utf-8')
     reader = csv.DictReader(decoded.splitlines())
     metrics: List[SwitchMetric] = []
     for row in reader:
-        # Convert string values to correct types if needed
-        row['bandwidth_usage'] = float(row['bandwidth_usage'])
-        row['latency'] = float(row['latency'])
-        row['packet_errors'] = int(row['packet_errors'])
-        # Parse collection_time as datetime if needed
-        if isinstance(row['collection_time'], str):
-            row['collection_time'] = datetime.fromisoformat(row['collection_time'].replace('Z', '+00:00'))
-        metrics.append(SwitchMetric(**row))
+        try:
+            # Convert string values to correct types if needed
+            row['bandwidth_usage'] = float(row['bandwidth_usage'])
+            row['latency'] = float(row['latency'])
+            row['packet_errors'] = int(row['packet_errors'])
+            # Parse collection_time as datetime if needed
+            if isinstance(row['collection_time'], str):
+                row['collection_time'] = datetime.fromisoformat(row['collection_time'].replace('Z', '+00:00'))
+            metrics.append(SwitchMetric(**row))
+        except Exception as e:
+            logger.error(f"Failed to parse row {row}: {e}")
+    logger.info(f"Parsed {len(metrics)} metric rows from CSV")
     return metrics
 
-
 def main() -> None:
-    print("Fetching telemetry from counters API...")
-    metrics: List[SwitchMetric] = fetch_counters_csv()
-    print(f"Fetched {len(metrics)} metrics from counters API.")
+    logger.info("Starting continuous telemetry fetch/send loop...")
+    while True:
+        logger.info("Fetching telemetry from counters API...")
+        metrics: List[SwitchMetric] = fetch_counters_csv()
+        logger.info(f"Fetched {len(metrics)} metrics from counters API.")
 
-    # Send in batches
-    for i in range(0, len(metrics), BATCH_SIZE):
-        batch = metrics[i:i+BATCH_SIZE]
-        message = json.dumps([m.model_dump(exclude={"timestamp"}) for m in batch], default=str)
-        sns.publish(
-            TopicArn=SNS_TOPIC_ARN,
-            Message=message
-        )
-        print(f"Published batch of {len(batch)} events to SNS.")
-        if i + BATCH_SIZE < len(metrics):
-            print("Sleeping for 10 seconds before sending next batch...\n")
-            time.sleep(10)
+        # Send in batches
+        for i in range(0, len(metrics), BATCH_SIZE):
+            batch = metrics[i:i+BATCH_SIZE]
+            message = json.dumps([m.model_dump(exclude={"timestamp"}) for m in batch], default=str)
+            try:
+                sns.publish(
+                    TopicArn=SNS_TOPIC_ARN,
+                    Message=message
+                )
+                logger.info(f"Published batch {i//BATCH_SIZE+1} ({len(batch)} events) to SNS.")
+            except Exception as e:
+                logger.error(f"Failed to publish batch {i//BATCH_SIZE+1}: {e}")
+            if i + BATCH_SIZE < len(metrics):
+                logger.info("Sleeping for 10 seconds before sending next batch...")
+                time.sleep(10)
+        # After sending all metrics, loop and fetch again
 
 if __name__ == "__main__":
     main()

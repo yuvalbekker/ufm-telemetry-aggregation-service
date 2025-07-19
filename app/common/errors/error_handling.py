@@ -4,6 +4,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from fastapi import HTTPException, status
 import logging
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def db_error_handling(func):

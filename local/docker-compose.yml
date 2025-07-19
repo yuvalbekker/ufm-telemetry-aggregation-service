@@ -1,15 +1,4 @@
 services:
-  counters:
-    build: ../
-    container_name: telemetry-counters-api
-    env_file:
-      - .env
-    environment:
-      - MODE=COUNTERS
-    ports:
-      - "9001:9001"
-    networks:
-      - default
   localstack:
     image: localstack/localstack:3
     container_name: localstack
@@ -38,6 +27,19 @@ services:
     networks:
       - default
 
+  counters:
+    build: ../
+    container_name: telemetry-counters-api
+    env_file:
+      - .env
+    environment:
+      - MODE=COUNTERS
+    ports:
+      - "9001:9001"
+    networks:
+      - default
+    restart: unless-stopped
+
   db:
     image: postgres:14-alpine
     container_name: telemetry-aggregation-db
@@ -58,8 +60,6 @@ services:
     container_name: telemetry-aggregation-api
     depends_on:
       - db
-      - localstack
-      - counters
       - graphite
     env_file:
       - .env
@@ -70,6 +70,7 @@ services:
       - "8080:8080"
     networks:
       - default
+    restart: unless-stopped
 
   worker:
     build: ../
@@ -77,7 +78,6 @@ services:
     depends_on:
       - db
       - localstack
-      - counters
       - graphite
     env_file:
       - .env
@@ -85,6 +85,21 @@ services:
       - MODE=WORKER
     networks:
       - default
+    restart: unless-stopped
+
+  event-generator:
+    build: ../
+    container_name: telemetry-event-generator
+    depends_on:
+      - localstack
+      - counters
+    env_file:
+      - .env
+    environment:
+      - MODE=GENERATOR
+    networks:
+      - default
+    restart: unless-stopped
 
 networks:
   default:
