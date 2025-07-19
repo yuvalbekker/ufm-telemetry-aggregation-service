@@ -10,7 +10,10 @@ elif [ "$MODE" = "COUNTERS" ]; then
 elif [ "$MODE" = "WORKER" ]; then
     echo "Starting worker process..."
     exec python -m app.ingestion.worker
+elif [ "$MODE" = "GENERATOR" ]; then
+    echo "Starting event generator..."
+    exec python -m local.scripts.event_generator
 else
-    echo "Error: MODE environment variable must be set to 'API' or 'WORKER'."
+    echo "Error: MODE environment variable must be set to 'API', 'COUNTERS', 'WORKER', or 'GENERATOR'."
     exit 1
 fi

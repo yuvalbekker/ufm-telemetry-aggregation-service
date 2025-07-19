@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Response
+from fastapi import APIRouter
 from fastapi.responses import FileResponse
 from typing import Any
-import os
 
 from counters.schemas.health import Health
 from counters.schemas.error_responses import HEALTH_ERROR_RESPONSES

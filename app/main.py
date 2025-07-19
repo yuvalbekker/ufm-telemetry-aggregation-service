@@ -5,7 +5,7 @@ from app.api.api_v1.api import api_router
 from app.core.config import settings
 from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.responses import JSONResponse
-from starlette.status import HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 import time
 from app.schemas.error_responses import Error
 from typing import Callable, Dict
@@ -13,6 +13,7 @@ from app.common.observability.statsd import stats_client
 import app.common.observability.metrics_names as mn
 import logging
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
@@ -45,6 +46,13 @@ async def send_call_metrics(request: Request, call_next: Callable) -> Dict:
             diff,
             str(ex),
         )
+
+    logger.info(
+        "API call | endpoint: %s | status: %s | latency: %.3f ms",
+        request.url.path,
+        status_code,
+        diff * 1000
+    )
     return result
 
 

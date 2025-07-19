@@ -1,43 +1,44 @@
 import time
-import boto3
-import app.db.utils as db_utils
 from app.core.config import settings
 from app.ingestion.handler import process_message
+import app.db.utils as db_utils
+from app.aws.utils import get_sqs_client, receive_messages, delete_message
+import logging
 
-# SQS Client
-sqs = boto3.client(
-    "sqs",
-    region_name=settings.AWS_REGION,
-    endpoint_url=settings.SQS_ENDPOINT_URL,
-)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-def main():
+def get_session():
     engine = db_utils.get_engine(settings.DB_URL)
     SessionLocal = db_utils.get_session_maker(engine)
     db_utils.ensure_tables(engine)
+    return SessionLocal
 
-    print("Starting SQS worker...")
+def main():
+    # Prepare the session maker once on worker startup
+    SessionLocal = get_session()
+    sqs = get_sqs_client()
+
+    logger.info("Starting SQS worker...")
     while True:
-        response = sqs.receive_message(
-            QueueUrl=settings.SQS_QUEUE_URL,
-            MaxNumberOfMessages=10,
-            WaitTimeSeconds=5,
-        )
-        messages = response.get("Messages", [])
+        messages = receive_messages(sqs, settings.SQS_QUEUE_URL, settings.MAX_MESSAGES_RECEIVED, settings.WAIT_TIME)
         if not messages:
-            print("No messages received")
-            time.sleep(2)
+            logger.info("No messages received")
+            time.sleep(5)
             continue
         for msg in messages:
             try:
-                process_message(msg["Body"], SessionLocal)
-                sqs.delete_message(
-                    QueueUrl=settings.SQS_QUEUE_URL,
-                    ReceiptHandle=msg["ReceiptHandle"]
-                )
+                with SessionLocal() as session:
+                    process_message(msg["Body"], session)
+                delete_message(sqs, settings.SQS_QUEUE_URL, msg["ReceiptHandle"])
+                logger.info("Successfully processed and deleted message with ReceiptHandle: %s", msg["ReceiptHandle"])
             except Exception as e:
-                print(f"Error processing message, will return to queue: {e}")
-                # No delete_message call here: message will become visible again after visibility timeout
+                logger.error(
+                    "Error processing message (ReceiptHandle: %s), will return to queue after visibility timeout: %s",
+                    msg.get("ReceiptHandle", "UNKNOWN"),
+                    e,
+                    exc_info=True
+                )
 
 if __name__ == "__main__":
     main()

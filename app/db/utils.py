@@ -3,6 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from app.models.metric import Metric, Base
 from sqlalchemy.orm.exc import NoResultFound
 from app.schemas.list_metrics import MetricValueResponse
+from app.common.types.valid_metrics import MetricName
 
 def get_engine(db_url: str):
     engine = create_engine(db_url)
@@ -22,15 +23,11 @@ def upsert_metrics(session, metrics):
         session.merge(db_metric)
     session.commit()
 
-def fetch_metric_value(session, switch_id: str, metric_name: str):
+def fetch_metric_value(session, switch_id: str, metric_name: MetricName):
     """
     Fetch the latest value of a metric for a specific switch.
     Returns (value, timestamp) or raises NoResultFound if not found.
     """
-    valid_metrics = {"bandwidth_usage", "latency", "packet_errors"}
-    if metric_name not in valid_metrics:
-        raise ValueError(f"Invalid metric_name: {metric_name}")
-
     metric_obj = (
         session.query(Metric)
         .filter(Metric.switch_id == switch_id)
@@ -52,10 +49,6 @@ def fetch_metrics(
     Fetch a paginated list of the latest metric values for all switches.
     Returns (list of MetricValueResponse, total number of unique switches).
     """
-    valid_metrics = {"bandwidth_usage", "latency", "packet_errors"}
-    if metric_name not in valid_metrics:
-        raise ValueError(f"Invalid metric_name: {metric_name}")
-
     # Total unique switches
     total = session.query(Metric.switch_id).distinct().count()
 
