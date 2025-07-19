@@ -14,3 +14,4 @@ psycopg2-binary==2.9.10
 
 # Testing dependencies
 pytest==8.4.1
+locust==2.37.14
