@@ -183,5 +183,67 @@ insights.
 - **Scalable Architecture:** Stateless design allows horizontal scaling of API instances
 
 **Container-Native Design:**
-All system components are orchestrated using Docker Compose, providing:
+All system components are orchestrated using Docker Compose.
+
+## Limitations and improvement suggestions
+1. **Single Worker Instance Bottleneck**
+   
+   **Limitation:**
+   Currently, the system is configured to run only a single instance of the telemetry-aggregation-worker. In scenarios where a high volume of telemetry messages accumulate in the     SQS queue, this single worker may become a processing bottleneck. As a result, there can be increased latency in persisting metrics to the database, potentially impacting the      timeliness of analytics and monitoring.
+
+   **Improvement Suggestion:**
+   Implement horizontal scaling for the worker service by enabling autoscaling based on the number of messages in the SQS queue. This would allow the system to automatically          launch additional worker instances under high load, ensuring timely processing and ingestion of telemetry data.
+
+2. **No Dead Letter Queue (DLQ) for Failed Messages**
+   
+   **Limitation:**
+   Currently, messages that repeatedly fail to be processed by the worker are retried indefinitely in the main SQS queue. This can lead to message processing loops and possible       backlog growth if certain messages are "poison" (malformed or unprocessable).
+
+   **Improvement Suggestion:**
+   Configure an SQS Dead Letter Queue (DLQ) to catch messages that fail processing after a set number of retries. This allows for easier investigation and handling of problematic     data, and prevents them from blocking the processing of valid messages.
+
+3. **Database Connection Limits**
+   
+   **Limitation:**
+   Both the worker and API services establish direct connections to the PostgreSQL database. In scenarios with high concurrency—such as when scaling out multiple worker instances     or serving many API requests in parallel—this can quickly exhaust the maximum number of allowed database connections. Exceeding this limit may lead to failed connections,          increased latency, or even downtime for parts of the system.
+
+   **Improvement Suggestion:**
+   Introduce a database connection pool to efficiently manage and reuse database connections across both the worker and API services. Tools like SQLAlchemy’s built-in connection      pooling or external poolers such as PgBouncer can help limit the total number of open connections, reduce overhead, and improve overall database performance and stability.         Additionally, review and tune the database’s max connections setting to align with expected peak loads and resource constraints.
+
+4. **API Rate Limiting Constraints**
+
+   **Limitation:**
+   The REST API does not currently enforce any rate limiting on incoming requests. In high-traffic scenarios, this can allow a large number of simultaneous or rapid requests,         potentially overwhelming the API service and the underlying database. Such an overload can degrade system performance, increase response times, and in extreme cases, lead to       service outages for all users.
+
+
+   **Improvement Suggestion:**
+   Implement API rate limiting to control the number of requests each client or IP address can make within a given time window. Rate limiting can be enforced at the application       level (using middleware, such as SlowAPI for FastAPI) or at the network/proxy level (using tools like NGINX, Traefik, or AWS API Gateway). This will help protect system            resources, ensure fair usage among clients, and improve overall reliability and quality of service.
+
+5. **Impact of Growing Metric Table on Performance**
+
+   **Limitation:**
+   As the volume of telemetry data grows, the number of rows in the `metric` table will continuously increase. This growth can lead to slower API response times and degraded            database performance, especially for read-heavy queries, analytical workloads, and insert operations. Maintaining indexes on large tables can also increase insertion time, as      each new row requires updates to the index structures. Over time, this can result in higher latency and reduced throughput for both data ingestion and data retrieval.
+
+
+   **Improvement Suggestion:**
+   1. Table Partitioning: Partition the table by time (e.g., daily, monthly) or switch ID to improve query and write performance and make data management tasks (archiving, deletion)     more efficient.
+   2. Archiving and Retention Policies: Regularly archive or delete old telemetry data that is no longer needed for real-time queries or compliance, reducing the working set size.
+
+6. **Database Lock Contention**
+   
+   **Limitation:**
+   When multiple worker or API instances perform concurrent write or update operations on the metric table, PostgreSQL may need to acquire locks to maintain data consistency. As      the system scales or if long-running transactions occur, this can lead to lock contention—where operations must wait for locks to be released—resulting in increased query          latency, slower insertions, and in some cases, transaction deadlocks or timeouts.
+
+   **Improvement Suggestion:**
+   1. Partitioning: Partitioning large tables can help by reducing lock scope to partitions rather than the entire table.
+   2. Optimize Transaction Scope: Keep transactions as short as possible and avoid holding locks longer than necessary. Always commit or rollback promptly.
+   3. Batch Inserts: Where possible, insert multiple records in a single transaction to reduce the number of lock acquisitions.
+
+7. **Use of HTTP Instead of HTTPS (Security Concern)**
+
+   **Limitation:**
+   Currently, the system’s REST APIs and internal service communications use plain HTTP rather than HTTPS. This means that data—including sensitive telemetry, credentials, and        user queries—is transmitted in unencrypted form over the network. This exposes the system to security risks such as eavesdropping, man-in-the-middle attacks, and data              tampering, especially in production environments or when running outside of trusted internal networks.
+
+   **Improvement Suggestion:**
+   Enable HTTPS for all REST endpoints and internal service communication, for example by configuring each service to use TLS certificates, ensuring encrypted data in transit.
 
