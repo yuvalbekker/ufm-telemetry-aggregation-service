@@ -120,6 +120,10 @@ Once the service is running, you can access the interactive API documentation:
 - **Swagger UI:** http://localhost:8080/docs
 - **ReDoc:** http://localhost:8080/redoc
 
+## System Architecture
+
+![System Architecture](docs/architecture.png)
+
 ## System Overview
 
 The UFM Telemetry Aggregation Service is designed as a robust, scalable, and highly available system for collecting, processing, and serving network switch telemetry data. The architecture follows modern microservices principles with clear separation of concerns across three main operational layers.
